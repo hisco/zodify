@@ -1,0 +1,62 @@
+{
+  "name": "zodify",
+  "version": "0.1.0",
+  "description": "Bidirectional conversion between Zod schemas and TypeScript classes with class-transformer and class-validator decorators. 100% type preservation and round-trip conversion support.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hisco/zodify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hisco/zodify/issues"
+  },
+  "homepage": "https://github.com/hisco/zodify#readme",
+  "keywords": [
+    "zod",
+    "class-transformer",
+    "class-validator",
+    "decorators",
+    "validation",
+    "typescript",
+    "dto",
+    "nestjs",
+    "bidirectional",
+    "round-trip",
+    "schema",
+    "class-conversion"
+  ],
+  "author": "Hisco",
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": ">=3.20.0 <4.0.0",
+    "class-transformer": ">=0.4.0 <1.0.0",
+    "class-validator": ">=0.13.0 <1.0.0",
+    "reflect-metadata": ">=0.1.0 <0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0",
+    "zod": "^3.22.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "reflect-metadata": "^0.1.13"
+  }
+}
