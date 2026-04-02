@@ -7,6 +7,7 @@
 // Main conversion functions
 export { zodToClass } from './zod-to-class';
 export { classToZod } from './class-to-zod';
+export { SchemaRegistry } from './schema-registry';
 
 // Configuration options
 export type {

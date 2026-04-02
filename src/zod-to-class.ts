@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ZodToClassOptions, ClassMetadata } from './types';
+import { ZodToClassOptions, ResolvedZodToClassOptions, ClassMetadata } from './types';
+import { SchemaRegistry } from './schema-registry';
 import { walkZodSchema } from './schema-walker';
 import { handleProperty } from './handlers';
 import { generateCode } from './code-generator';
@@ -13,7 +14,7 @@ export function zodToClass<T extends z.ZodType>(
   options: ZodToClassOptions = {}
 ): any {
   // Apply default options
-  const opts: Required<ZodToClassOptions> = {
+  const opts: ResolvedZodToClassOptions = {
     className: 'GeneratedClass',
     includeValidators: true,
     includeTransformers: true,
@@ -29,7 +30,7 @@ export function zodToClass<T extends z.ZodType>(
   const node = walkZodSchema(schema);
 
   // Build class metadata
-  const metadata = buildClassMetadata(node, opts.className);
+  const metadata = buildClassMetadata(node, opts.className, opts.registry);
 
   // Generate runtime class
   return generateRuntimeClass(metadata, opts);
@@ -43,7 +44,7 @@ zodToClass.toCode = function <T extends z.ZodType>(
   options: ZodToClassOptions = {}
 ): string {
   // Apply default options
-  const opts: Required<ZodToClassOptions> = {
+  const opts: ResolvedZodToClassOptions = {
     className: 'GeneratedClass',
     includeValidators: true,
     includeTransformers: true,
@@ -59,7 +60,7 @@ zodToClass.toCode = function <T extends z.ZodType>(
   const node = walkZodSchema(schema);
 
   // Build class metadata
-  const metadata = buildClassMetadata(node, opts.className);
+  const metadata = buildClassMetadata(node, opts.className, opts.registry);
 
   // Generate code string
   return generateCode(metadata, opts);
@@ -68,7 +69,7 @@ zodToClass.toCode = function <T extends z.ZodType>(
 /**
  * Build class metadata from a schema node
  */
-function buildClassMetadata(node: any, className: string): ClassMetadata {
+function buildClassMetadata(node: any, className: string, registry?: SchemaRegistry): ClassMetadata {
   if (node.typeName !== 'ZodObject' || !node.shape) {
     throw new Error('zodToClass only supports object schemas at the root level');
   }
@@ -81,7 +82,7 @@ function buildClassMetadata(node: any, className: string): ClassMetadata {
 
   // Process each property in the object
   for (const [propertyName, propertyNode] of Object.entries(node.shape)) {
-    const propMetadata = handleProperty(propertyName, propertyNode as any, className);
+    const propMetadata = handleProperty(propertyName, propertyNode as any, className, registry);
     metadata.properties.push(propMetadata);
 
     // Collect nested classes

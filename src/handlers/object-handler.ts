@@ -1,4 +1,5 @@
 import { PropertyMetadata, ClassMetadata, SchemaNode } from '../types';
+import { SchemaRegistry } from '../schema-registry';
 import { mapZodToValidators, mapZodToTransformers } from '../decorator-mapper';
 import { mapZodToSwagger } from '../swagger-mapper';
 import { mapZodToGraphQL } from '../graphql-mapper';
@@ -11,8 +12,25 @@ import { handleProperty } from './index';
 export function handleObject(
   propertyName: string,
   node: SchemaNode,
-  parentClassName: string
+  parentClassName: string,
+  registry?: SchemaRegistry
 ): PropertyMetadata {
+  // Check if this schema is registered — if so, reference it instead of inlining
+  const registered = registry?.lookup(node.schema);
+  if (registered) {
+    return {
+      name: propertyName,
+      type: registered.name,
+      optional: node.isOptional,
+      nullable: node.isNullable,
+      validators: mapZodToValidators(node),
+      transformers: mapZodToTransformers(node, registered.name),
+      swagger: mapZodToSwagger(node, registered.name),
+      graphql: mapZodToGraphQL(node, registered.name),
+      // No nestedClass — it's defined externally
+    };
+  }
+
   const nestedClassName = `${parentClassName}${toPascalCase(propertyName)}`;
 
   // Create nested class metadata
@@ -25,7 +43,7 @@ export function handleObject(
   // Process each property in the object shape
   if (node.shape) {
     for (const [key, childNode] of Object.entries(node.shape)) {
-      const propMetadata = handleProperty(key, childNode, nestedClassName);
+      const propMetadata = handleProperty(key, childNode, nestedClassName, registry);
       nestedClass.properties.push(propMetadata);
 
       // Collect nested classes

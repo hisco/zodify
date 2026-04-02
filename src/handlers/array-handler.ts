@@ -1,4 +1,5 @@
 import { PropertyMetadata, ClassMetadata, SchemaNode } from '../types';
+import { SchemaRegistry } from '../schema-registry';
 import { mapZodToValidators, mapZodToTransformers } from '../decorator-mapper';
 import { mapZodToSwagger } from '../swagger-mapper';
 import { mapZodToGraphQL } from '../graphql-mapper';
@@ -12,7 +13,8 @@ import { setItemSchema } from '../metadata-storage';
 export function handleArray(
   propertyName: string,
   node: SchemaNode,
-  parentClassName: string
+  parentClassName: string,
+  registry?: SchemaRegistry
 ): PropertyMetadata {
   if (!node.itemSchema) {
     throw new Error('Array node missing itemSchema');
@@ -23,6 +25,26 @@ export function handleArray(
 
   // If array items are objects, create a nested class for the item type
   if (itemTypeName === 'ZodObject') {
+    // Check if the item schema is registered
+    const registered = registry?.lookup(itemNode.schema);
+    if (registered) {
+      const itemClassName = registered.name;
+      return {
+        name: propertyName,
+        type: `${itemClassName}[]`,
+        optional: node.isOptional,
+        nullable: node.isNullable,
+        validators: mapZodToValidators(node),
+        transformers: [
+          { name: 'Expose', source: 'class-transformer' },
+          { name: 'Type', source: 'class-transformer', args: [`() => ${itemClassName}`] },
+        ],
+        swagger: mapZodToSwagger(node, itemClassName),
+        graphql: mapZodToGraphQL(node, itemClassName),
+        // No nestedClass — it's defined externally
+      };
+    }
+
     const itemClassName = `${parentClassName}${toPascalCase(propertyName)}Item`;
 
     // Create nested class for array items
@@ -34,7 +56,7 @@ export function handleArray(
 
     if (itemNode.shape) {
       for (const [key, childNode] of Object.entries(itemNode.shape)) {
-        const propMetadata = handleProperty(key, childNode, itemClassName);
+        const propMetadata = handleProperty(key, childNode, itemClassName, registry);
         nestedClass.properties.push(propMetadata);
 
         if (propMetadata.nestedClass) {
