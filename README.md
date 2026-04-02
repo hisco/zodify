@@ -6,6 +6,8 @@
 
 - ✅ **Bidirectional conversion**: Zod ↔ Class with zero data loss
 - ✅ **100% round-trip preservation**: Convert Zod → Class → Zod with all constraints intact
+- ✅ **Swagger / OpenAPI**: Auto-generate `@ApiProperty()` / `@ApiPropertyOptional()` from `@nestjs/swagger`
+- ✅ **GraphQL**: Auto-generate `@Field()`, `@ObjectType()` / `@InputType()` from `@nestjs/graphql`
 - ✅ **Array constraints**: Full support for `.min()`, `.max()`, `.length()`, `.nonempty()`
 - ✅ **Primitive array items**: Preserve constraints like `z.array(z.string().min(2))`
 - ✅ **Date ranges**: `z.date().min(date)` and `.max(date)` support
@@ -13,12 +15,24 @@
 - ✅ **Deep nesting**: Tested up to 5 levels with full validation
 - ✅ **Runtime class generation**: Dynamic class creation from Zod schemas
 - ✅ **Code generation**: Generate TypeScript code strings
-- ✅ **NestJS ready**: Perfect for DTOs and validation pipes
+- ✅ **NestJS ready**: Perfect for DTOs, Swagger docs, and GraphQL resolvers
 
 ## Installation
 
 ```bash
 npm install zodify zod class-transformer class-validator reflect-metadata
+```
+
+For Swagger support (optional):
+
+```bash
+npm install @nestjs/swagger
+```
+
+For GraphQL support (optional):
+
+```bash
+npm install @nestjs/graphql
 ```
 
 ## Quick Start - Zod to Class
@@ -107,6 +121,9 @@ Convert a Zod schema to a runtime TypeScript class.
   - `className?: string` - Generated class name (default: 'GeneratedClass')
   - `includeValidators?: boolean` - Include class-validator decorators (default: true)
   - `includeTransformers?: boolean` - Include class-transformer decorators (default: true)
+  - `includeSwagger?: boolean` - Include `@nestjs/swagger` decorators (default: false)
+  - `includeGraphQL?: boolean` - Include `@nestjs/graphql` decorators (default: false)
+  - `graphqlType?: 'ObjectType' | 'InputType'` - GraphQL class decorator type (default: 'ObjectType')
   - `exportClass?: boolean` - Export the class (for code generation, default: true)
   - `includeImports?: boolean` - Add import statements (for code generation, default: true)
 
@@ -474,9 +491,204 @@ import fs from 'fs';
 fs.writeFileSync('./generated/user.dto.ts', code);
 ```
 
+## Swagger / OpenAPI Support
+
+Generate `@ApiProperty()` and `@ApiPropertyOptional()` decorators automatically from your Zod schemas. Requires `@nestjs/swagger` as a peer dependency.
+
+```typescript
+const UserSchema = z.object({
+  id: z.string().uuid().describe('Unique user identifier'),
+  email: z.string().email().describe('User email address'),
+  age: z.number().int().min(0).max(120),
+  role: z.enum(['admin', 'user', 'guest']),
+  nickname: z.string().optional(),
+  bio: z.string().nullable(),
+  tags: z.array(z.string()).min(1).max(10),
+});
+
+const code = zodToClass.toCode(UserSchema, {
+  className: 'User',
+  includeSwagger: true,
+});
+```
+
+Generated output:
+
+```typescript
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
+import { IsString, IsUUID, IsEmail, IsInt, Min, Max, IsEnum, IsArray, ArrayMinSize, ArrayMaxSize } from 'class-validator';
+
+export class User {
+  @ApiProperty({ type: String, format: 'uuid', description: 'Unique user identifier' })
+  @IsString()
+  @IsUUID()
+  @Expose()
+  id: string;
+
+  @ApiProperty({ type: String, format: 'email', description: 'User email address' })
+  @IsString()
+  @IsEmail()
+  @Expose()
+  email: string;
+
+  @ApiProperty({ type: Number, minimum: 0, maximum: 120 })
+  @IsInt()
+  @Min(0)
+  @Max(120)
+  @Expose()
+  age: number;
+
+  @ApiProperty({ type: String, enum: ['admin', 'user', 'guest'] })
+  @IsEnum(['admin', 'user', 'guest'])
+  @Expose()
+  role: 'admin' | 'user' | 'guest';
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  nickname?: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  @Expose()
+  bio: string | null;
+
+  @ApiProperty({ type: String, isArray: true, minItems: 1, maxItems: 10 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @Expose()
+  tags: string[];
+}
+```
+
+### Swagger Mapping Reference
+
+The following Zod features map to `@ApiProperty` options:
+
+| Zod Feature | `@ApiProperty` Option |
+|---|---|
+| `z.string()` / `z.number()` / `z.boolean()` | `type: String` / `Number` / `Boolean` |
+| `.optional()` | Uses `@ApiPropertyOptional` instead |
+| `.nullable()` | `nullable: true` |
+| `.describe('...')` | `description: '...'` |
+| `.default(value)` | `default: value` |
+| `.min(n)` / `.max(n)` (string) | `minLength` / `maxLength` |
+| `.min(n)` / `.max(n)` (number) | `minimum` / `maximum` |
+| `.min(n)` / `.max(n)` (array) | `minItems` / `maxItems` |
+| `.regex(pattern)` | `pattern` |
+| `.email()` | `format: 'email'` |
+| `.uuid()` | `format: 'uuid'` |
+| `.url()` | `format: 'uri'` |
+| `.datetime()` | `format: 'date-time'` |
+| `.ip()` | `format: 'ipv4'` or `'ipv6'` |
+| `z.enum([...])` | `enum: [...]` |
+| `.multipleOf(n)` | `multipleOf` |
+| Nested `z.object()` | `type: () => NestedClass` |
+| `z.array(...)` | `isArray: true` + item type |
+
+## GraphQL Support
+
+Generate `@Field()`, `@ObjectType()`, and `@InputType()` decorators from your Zod schemas. Requires `@nestjs/graphql` as a peer dependency.
+
+```typescript
+const UserSchema = z.object({
+  name: z.string(),
+  age: z.number().int(),
+  score: z.number(),
+  active: z.boolean(),
+  bio: z.string().optional().describe('User biography'),
+});
+
+const code = zodToClass.toCode(UserSchema, {
+  className: 'User',
+  includeGraphQL: true,
+});
+```
+
+Generated output:
+
+```typescript
+import { Field, Int, Float, ObjectType } from '@nestjs/graphql';
+import { Expose } from 'class-transformer';
+import { IsString, IsInt, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+
+@ObjectType()
+export class User {
+  @Field(() => String)
+  @IsString()
+  @Expose()
+  name: string;
+
+  @Field(() => Int)
+  @IsInt()
+  @Expose()
+  age: number;
+
+  @Field(() => Float)
+  @IsNumber()
+  @Expose()
+  score: number;
+
+  @Field(() => Boolean)
+  @IsBoolean()
+  @Expose()
+  active: boolean;
+
+  @Field(() => String, { nullable: true, description: 'User biography' })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  bio?: string;
+}
+```
+
+Use `graphqlType: 'InputType'` for mutation inputs:
+
+```typescript
+const code = zodToClass.toCode(CreateUserSchema, {
+  className: 'CreateUserInput',
+  includeGraphQL: true,
+  graphqlType: 'InputType',
+});
+// Generates @InputType() instead of @ObjectType()
+```
+
+### GraphQL Mapping Reference
+
+| Zod Type | GraphQL Type |
+|---|---|
+| `z.string()` | `() => String` |
+| `z.number()` | `() => Float` |
+| `z.number().int()` | `() => Int` |
+| `z.boolean()` | `() => Boolean` |
+| `z.date()` | `() => Date` |
+| `z.enum([...])` | `() => String` |
+| Nested `z.object()` | `() => NestedClass` |
+| `z.array(z.string())` | `() => [String]` |
+| `z.array(z.number().int())` | `() => [Int]` |
+| `z.array(z.object(...))` | `() => [ItemClass]` |
+| `.optional()` / `.nullable()` | `{ nullable: true }` |
+| `.describe('...')` | `{ description: '...' }` |
+| `.default(value)` | `{ defaultValue: value }` |
+
+### Combining Swagger + GraphQL
+
+You can enable both at the same time:
+
+```typescript
+const code = zodToClass.toCode(UserSchema, {
+  className: 'User',
+  includeSwagger: true,
+  includeGraphQL: true,
+});
+// Generates @ObjectType(), @Field(), @ApiProperty(), @IsString(), @Expose() etc.
+```
+
 ## NestJS Integration
 
-zodify works seamlessly with NestJS applications.
+zodify works seamlessly with NestJS applications, including validation pipes, Swagger documentation, and GraphQL resolvers.
 
 ```typescript
 import { z } from 'zod';
@@ -486,19 +698,22 @@ import { ValidationPipe } from '@nestjs/common';
 
 // Define Zod schema
 const CreateUserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email().describe('User email'),
+  password: z.string().min(8).describe('Min 8 characters'),
   name: z.string(),
 });
 
-// Generate DTO class
-const CreateUserDto = zodToClass(CreateUserSchema, { className: 'CreateUserDto' });
+// Generate DTO class with Swagger annotations
+const CreateUserDto = zodToClass(CreateUserSchema, {
+  className: 'CreateUserDto',
+  includeSwagger: true,
+});
 
 @Controller('users')
 export class UsersController {
   @Post()
   async create(@Body() createUserDto: typeof CreateUserDto) {
-    // createUserDto is already validated and transformed!
+    // createUserDto is validated, transformed, and Swagger-documented!
     return { success: true };
   }
 }
@@ -553,7 +768,7 @@ zodify has some limitations:
 
 - **z.tuple()**: Tuple types are not yet supported.
 - **z.promise()** and **z.function()**: These types cannot be represented in decorators.
-- **z.default()**: Default values are not preserved during conversion.
+- **z.default()**: Default values are extracted for Swagger (`default`) and GraphQL (`defaultValue`) annotations, but are not preserved in class-validator round-trip conversions.
 
 ## Contributing
 

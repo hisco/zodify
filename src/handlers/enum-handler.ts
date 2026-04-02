@@ -1,5 +1,7 @@
 import { PropertyMetadata, SchemaNode } from '../types';
 import { mapZodToValidators, mapZodToTransformers } from '../decorator-mapper';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 
 /**
  * Handle ZodEnum and ZodNativeEnum types
@@ -24,5 +26,7 @@ export function handleEnum(
     nullable: node.isNullable,
     validators: mapZodToValidators(node),
     transformers: mapZodToTransformers(node),
+    swagger: mapZodToSwagger(node),
+    graphql: mapZodToGraphQL(node),
   };
 }

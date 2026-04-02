@@ -13,6 +13,15 @@ export interface ZodToClassOptions {
   /** Include class-transformer decorators */
   includeTransformers?: boolean;
 
+  /** Include @nestjs/swagger decorators (@ApiProperty / @ApiPropertyOptional) */
+  includeSwagger?: boolean;
+
+  /** Include @nestjs/graphql decorators (@Field, @ObjectType / @InputType) */
+  includeGraphQL?: boolean;
+
+  /** GraphQL class decorator type: 'ObjectType' (default) or 'InputType' */
+  graphqlType?: 'ObjectType' | 'InputType';
+
   /** Export the class (for code generation) */
   exportClass?: boolean;
 
@@ -37,7 +46,7 @@ export interface ClassToZodOptions {
 /**
  * Source for decorator imports
  */
-export type DecoratorSource = 'class-validator' | 'class-transformer';
+export type DecoratorSource = 'class-validator' | 'class-transformer' | 'nestjs-swagger' | 'nestjs-graphql';
 
 /**
  * Metadata about a single decorator
@@ -77,6 +86,12 @@ export interface PropertyMetadata {
 
   /** class-transformer decorators */
   transformers: DecoratorInfo[];
+
+  /** @nestjs/swagger decorators */
+  swagger?: DecoratorInfo[];
+
+  /** @nestjs/graphql decorators */
+  graphql?: DecoratorInfo[];
 
   /** Reference to nested class (for z.object() properties) */
   nestedClass?: ClassMetadata;
@@ -138,4 +153,13 @@ export interface SchemaNode {
 
   /** Checks/validators from Zod (min, max, email, etc.) */
   checks?: any[];
+
+  /** Description from .describe() */
+  description?: string;
+
+  /** Default value from .default() */
+  defaultValue?: any;
+
+  /** Whether this schema has a default (to distinguish undefined default from no default) */
+  hasDefault?: boolean;
 }

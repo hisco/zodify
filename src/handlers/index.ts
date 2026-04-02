@@ -5,6 +5,8 @@ import { handleArray } from './array-handler';
 import { handleEnum } from './enum-handler';
 import { handleUnion } from './union-handler';
 import { handleDiscriminatedUnion } from './discriminated-union-handler';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 
 /**
  * Route to the appropriate handler based on schema type
@@ -50,6 +52,8 @@ export function handleProperty(
         nullable: node.isNullable,
         validators: [],
         transformers: [{ name: 'Expose', source: 'class-transformer' }],
+        swagger: mapZodToSwagger(node),
+        graphql: mapZodToGraphQL(node),
       };
 
     default:
@@ -61,6 +65,8 @@ export function handleProperty(
         nullable: node.isNullable,
         validators: [],
         transformers: [{ name: 'Expose', source: 'class-transformer' }],
+        swagger: mapZodToSwagger(node),
+        graphql: mapZodToGraphQL(node),
       };
   }
 }

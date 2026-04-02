@@ -34,6 +34,11 @@ export function unwrapSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
     return unwrapSchema(current);
   }
 
+  if (typeName === 'ZodDefault') {
+    current = (current as any)._def.innerType;
+    return unwrapSchema(current);
+  }
+
   return current;
 }
 
