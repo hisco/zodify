@@ -1,6 +1,6 @@
 {
   "name": "@hiscojs/zodify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Bidirectional conversion between Zod schemas and TypeScript classes with class-transformer and class-validator decorators. 100% type preservation and round-trip conversion support.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
