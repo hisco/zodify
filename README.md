@@ -124,6 +124,7 @@ Convert a Zod schema to a runtime TypeScript class.
   - `includeSwagger?: boolean` - Include `@nestjs/swagger` decorators (default: false)
   - `includeGraphQL?: boolean` - Include `@nestjs/graphql` decorators (default: false)
   - `graphqlType?: 'ObjectType' | 'InputType'` - GraphQL class decorator type (default: 'ObjectType')
+  - `registry?: SchemaRegistry` - Schema registry for cross-type references (see [SchemaRegistry](#schemaregistry))
   - `exportClass?: boolean` - Export the class (for code generation, default: true)
   - `includeImports?: boolean` - Add import statements (for code generation, default: true)
 
@@ -162,12 +163,12 @@ import { IsString, IsEmail } from 'class-validator';
 export class User {
   @IsString()
   @Expose()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsEmail()
   @Expose()
-  email: string;
+  email!: string;
 }
 ```
 
@@ -524,25 +525,25 @@ export class User {
   @IsString()
   @IsUUID()
   @Expose()
-  id: string;
+  id!: string;
 
   @ApiProperty({ type: String, format: 'email', description: 'User email address' })
   @IsString()
   @IsEmail()
   @Expose()
-  email: string;
+  email!: string;
 
   @ApiProperty({ type: Number, minimum: 0, maximum: 120 })
   @IsInt()
   @Min(0)
   @Max(120)
   @Expose()
-  age: number;
+  age!: number;
 
   @ApiProperty({ type: String, enum: ['admin', 'user', 'guest'] })
   @IsEnum(['admin', 'user', 'guest'])
   @Expose()
-  role: 'admin' | 'user' | 'guest';
+  role!: 'admin' | 'user' | 'guest';
 
   @ApiPropertyOptional({ type: String })
   @IsOptional()
@@ -552,14 +553,14 @@ export class User {
 
   @ApiProperty({ type: String, nullable: true })
   @Expose()
-  bio: string | null;
+  bio!: string | null;
 
   @ApiProperty({ type: String, isArray: true, minItems: 1, maxItems: 10 })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(10)
   @Expose()
-  tags: string[];
+  tags!: string[];
 }
 ```
 
@@ -619,22 +620,22 @@ export class User {
   @Field(() => String)
   @IsString()
   @Expose()
-  name: string;
+  name!: string;
 
   @Field(() => Int)
   @IsInt()
   @Expose()
-  age: number;
+  age!: number;
 
   @Field(() => Float)
   @IsNumber()
   @Expose()
-  score: number;
+  score!: number;
 
   @Field(() => Boolean)
   @IsBoolean()
   @Expose()
-  active: boolean;
+  active!: boolean;
 
   @Field(() => String, { nullable: true, description: 'User biography' })
   @IsOptional()
@@ -685,6 +686,73 @@ const code = zodToClass.toCode(UserSchema, {
 });
 // Generates @ObjectType(), @Field(), @ApiProperty(), @IsString(), @Expose() etc.
 ```
+
+## SchemaRegistry
+
+When generating classes from schemas that reference other schemas, zodify auto-generates nested class names (e.g. `GatewaysViewGatewaysItem`). Use `SchemaRegistry` to control these names by registering shared schemas upfront:
+
+```typescript
+import { z } from 'zod';
+import { zodToClass, SchemaRegistry } from 'zodify';
+
+const GatewayListenerSchema = z.object({
+  name: z.string(),
+  protocol: z.string(),
+  port: z.number().int(),
+});
+
+const MergedGatewaySchema = z.object({
+  cluster: z.string(),
+  name: z.string(),
+  runtimeListeners: z.array(GatewayListenerSchema).optional(),
+});
+
+const GatewaysViewSchema = z.object({
+  gateways: z.array(MergedGatewaySchema),
+  failedClusters: z.array(z.string()),
+});
+
+// Register shared schemas with names
+const registry = new SchemaRegistry();
+registry.register('GatewayListener', GatewayListenerSchema);
+registry.register('MergedGateway', MergedGatewaySchema);
+
+// Code generation — references registered names instead of inlining
+const code = zodToClass.toCode(GatewaysViewSchema, {
+  className: 'GatewaysView',
+  includeGraphQL: true,
+  registry,
+});
+// Output references MergedGateway and GatewayListener by name,
+// without generating inline class definitions for them.
+```
+
+For runtime usage, register schemas with their pre-generated class references (generate leaf types first):
+
+```typescript
+const registry = new SchemaRegistry();
+
+const GatewayListener = zodToClass(GatewayListenerSchema, {
+  className: 'GatewayListener',
+  includeGraphQL: true,
+});
+registry.register('GatewayListener', GatewayListenerSchema, GatewayListener);
+
+const MergedGateway = zodToClass(MergedGatewaySchema, {
+  className: 'MergedGateway',
+  includeGraphQL: true,
+  registry,
+});
+registry.register('MergedGateway', MergedGatewaySchema, MergedGateway);
+
+const GatewaysView = zodToClass(GatewaysViewSchema, {
+  className: 'GatewaysView',
+  includeGraphQL: true,
+  registry,
+});
+```
+
+Schemas are matched by **reference identity** — pass the same schema object that was used when defining the parent schema.
 
 ## NestJS Integration
 
