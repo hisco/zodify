@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ClassMetadata, PropertyMetadata, DecoratorInfo, ZodToClassOptions } from './types';
+import { ClassMetadata, PropertyMetadata, DecoratorInfo, ResolvedZodToClassOptions } from './types';
 import { setItemSchema } from './metadata-storage';
 
 /**
@@ -9,10 +9,17 @@ import { setItemSchema } from './metadata-storage';
  */
 export function generateRuntimeClass(
   metadata: ClassMetadata,
-  options: Required<ZodToClassOptions>
+  options: ResolvedZodToClassOptions
 ): any {
   // First, generate all nested classes
   const nestedClasses = new Map<string, any>();
+
+  // Pre-populate with registry class refs so decorators can resolve them
+  if (options.registry) {
+    for (const [name, classRef] of options.registry.getClassRefs()) {
+      nestedClasses.set(name, classRef);
+    }
+  }
 
   for (const nestedMeta of metadata.nestedClasses) {
     const NestedClass = generateRuntimeClass(nestedMeta, options);
@@ -22,6 +29,11 @@ export function generateRuntimeClass(
   // Create the main class
   const classCode = generateClassConstructor(metadata);
   const ClassConstructor = new Function('nestedClasses', classCode)(nestedClasses);
+
+  // Apply class-level GraphQL decorator (@ObjectType / @InputType)
+  if (options.includeGraphQL) {
+    applyClassDecorator(ClassConstructor, options);
+  }
 
   // Apply decorators using reflect-metadata
   for (const prop of metadata.properties) {
@@ -49,12 +61,31 @@ function generateClassConstructor(metadata: ClassMetadata): string {
 }
 
 /**
+ * Apply class-level GraphQL decorator (@ObjectType or @InputType)
+ */
+function applyClassDecorator(
+  target: any,
+  options: ResolvedZodToClassOptions
+): void {
+  try {
+    const graphql = require('@nestjs/graphql');
+    const decoratorFn = graphql[options.graphqlType];
+    if (decoratorFn) {
+      const decorator = decoratorFn();
+      decorator(target);
+    }
+  } catch (error) {
+    console.warn(`Failed to apply class decorator ${options.graphqlType}:`, error);
+  }
+}
+
+/**
  * Apply decorators to a property using reflect-metadata
  */
 function applyPropertyDecorators(
   target: any,
   prop: PropertyMetadata,
-  options: Required<ZodToClassOptions>,
+  options: ResolvedZodToClassOptions,
   nestedClasses: Map<string, any>
 ): void {
   // Apply GraphQL decorators

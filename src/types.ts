@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SchemaRegistry } from './schema-registry';
 
 /**
  * Configuration options for zodToClass conversion
@@ -27,7 +28,15 @@ export interface ZodToClassOptions {
 
   /** Add imports to generated code */
   includeImports?: boolean;
+
+  /** Schema registry for cross-type references (avoids inlining nested types) */
+  registry?: SchemaRegistry;
 }
+
+/**
+ * ZodToClassOptions with all non-registry fields required (internal use).
+ */
+export type ResolvedZodToClassOptions = Required<Omit<ZodToClassOptions, 'registry'>> & Pick<ZodToClassOptions, 'registry'>;
 
 /**
  * Configuration options for classToZod conversion

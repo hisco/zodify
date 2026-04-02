@@ -1,11 +1,11 @@
-import { ClassMetadata, PropertyMetadata, DecoratorInfo, ZodToClassOptions } from './types';
+import { ClassMetadata, PropertyMetadata, DecoratorInfo, ResolvedZodToClassOptions } from './types';
 
 /**
  * Generate TypeScript code string from class metadata
  */
 export function generateCode(
   metadata: ClassMetadata,
-  options: Required<ZodToClassOptions>
+  options: ResolvedZodToClassOptions
 ): string {
   const parts: string[] = [];
 
@@ -32,7 +32,7 @@ export function generateCode(
  */
 function generateImports(
   metadata: ClassMetadata,
-  options: Required<ZodToClassOptions>
+  options: ResolvedZodToClassOptions
 ): string {
   const imports = new Set<string>();
   const classTransformerImports = new Set<string>();
@@ -138,7 +138,7 @@ function generateImports(
  */
 function generateClassCode(
   metadata: ClassMetadata,
-  options: Required<ZodToClassOptions>
+  options: ResolvedZodToClassOptions
 ): string {
   const classKeyword = options.exportClass ? 'export class' : 'class';
   const properties = metadata.properties
@@ -157,7 +157,7 @@ ${properties}
  */
 function generatePropertyCode(
   prop: PropertyMetadata,
-  options: Required<ZodToClassOptions>
+  options: ResolvedZodToClassOptions
 ): string {
   const decorators: string[] = [];
 

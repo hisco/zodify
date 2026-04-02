@@ -1,4 +1,5 @@
 import { PropertyMetadata, SchemaNode } from '../types';
+import { SchemaRegistry } from '../schema-registry';
 import { handlePrimitive } from './primitive-handler';
 import { handleObject } from './object-handler';
 import { handleArray } from './array-handler';
@@ -14,7 +15,8 @@ import { mapZodToGraphQL } from '../graphql-mapper';
 export function handleProperty(
   propertyName: string,
   node: SchemaNode,
-  parentClassName: string
+  parentClassName: string,
+  registry?: SchemaRegistry
 ): PropertyMetadata {
   const typeName = node.typeName;
 
@@ -27,10 +29,10 @@ export function handleProperty(
       return handlePrimitive(propertyName, node);
 
     case 'ZodObject':
-      return handleObject(propertyName, node, parentClassName);
+      return handleObject(propertyName, node, parentClassName, registry);
 
     case 'ZodArray':
-      return handleArray(propertyName, node, parentClassName);
+      return handleArray(propertyName, node, parentClassName, registry);
 
     case 'ZodEnum':
     case 'ZodNativeEnum':
