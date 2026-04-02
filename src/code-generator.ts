@@ -190,14 +190,14 @@ function generatePropertyCode(
   }
 
   const decoratorString = decorators.map((d) => `  ${d}`).join('\n');
-  const optional = prop.optional ? '?' : '';
+  const suffix = prop.optional ? '?' : '!';
   const nullable = prop.nullable ? ' | null' : '';
   const typeString = `${prop.type}${nullable}`;
 
   if (decoratorString) {
-    return `${decoratorString}\n  ${prop.name}${optional}: ${typeString};`;
+    return `${decoratorString}\n  ${prop.name}${suffix}: ${typeString};`;
   } else {
-    return `  ${prop.name}${optional}: ${typeString};`;
+    return `  ${prop.name}${suffix}: ${typeString};`;
   }
 }
 

@@ -165,26 +165,9 @@ function applyDecorator(
 
     if (decorator.args) {
       decoratorArgs = decorator.args.map((arg) => {
-        // Handle function strings (e.g., "() => Date")
+        // Handle function strings (e.g., "() => Date", "() => Int", "() => [String]")
         if (typeof arg === 'string' && arg.startsWith('()')) {
-          // Extract the class name from the function string
-          const match = arg.match(/\(\) => (\w+)/);
-          if (match) {
-            const className = match[1];
-            if (className === 'Date') {
-              return () => Date;
-            }
-            if (className === 'Object') {
-              return () => Object;
-            }
-            // Check if it's a nested class
-            const nestedClass = nestedClasses.get(className);
-            if (nestedClass) {
-              return () => nestedClass;
-            }
-          }
-          // Fallback: evaluate the string
-          return eval(arg);
+          return resolveTypeFunctionArg(arg, nestedClasses);
         }
         return arg;
       });
@@ -255,6 +238,59 @@ function getDesignType(
   if (prop.type === 'boolean') return Boolean;
   if (prop.type === 'Date') return Date;
   if (prop.type.endsWith('[]')) return Array;
+
+  return Object;
+}
+
+/**
+ * Resolve a type function string like "() => Int" or "() => [String]" to an actual function.
+ * Handles JS builtins, GraphQL scalars (Int, Float), nested class refs, and array wrappers.
+ */
+function resolveTypeFunctionArg(
+  arg: string,
+  nestedClasses: Map<string, any>
+): () => any {
+  // Match "() => TypeName" or "() => [TypeName]"
+  const arrayMatch = arg.match(/\(\) => \[(\w+)\]/);
+  if (arrayMatch) {
+    const innerType = resolveTypeName(arrayMatch[1], nestedClasses);
+    return () => [innerType];
+  }
+
+  const match = arg.match(/\(\) => (\w+)/);
+  if (match) {
+    const resolved = resolveTypeName(match[1], nestedClasses);
+    return () => resolved;
+  }
+
+  // Fallback (shouldn't happen with well-formed args)
+  return () => Object;
+}
+
+/**
+ * Resolve a type name string to its runtime value.
+ */
+function resolveTypeName(name: string, nestedClasses: Map<string, any>): any {
+  // JS built-in types
+  switch (name) {
+    case 'String': return String;
+    case 'Number': return Number;
+    case 'Boolean': return Boolean;
+    case 'Date': return Date;
+    case 'Object': return Object;
+  }
+
+  // GraphQL scalar types from @nestjs/graphql
+  try {
+    const graphql = require('@nestjs/graphql');
+    if (graphql[name]) return graphql[name];
+  } catch {
+    // @nestjs/graphql not available
+  }
+
+  // Nested / registry class references
+  const classRef = nestedClasses.get(name);
+  if (classRef) return classRef;
 
   return Object;
 }

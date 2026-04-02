@@ -92,8 +92,8 @@ describe('Code Generation', () => {
     const code = zodToClass.toCode(schema, { className: 'User' });
 
     expect(code).toContain('nickname?: string');
-    expect(code).toContain('name: string');
+    expect(code).toContain('name!: string');
     // Ensure name is not marked as optional
-    expect(code).toMatch(/\s+name:\s+string/);
+    expect(code).toMatch(/\s+name!:\s+string/);
   });
 });

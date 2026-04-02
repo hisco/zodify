@@ -277,10 +277,10 @@ describe('End-to-End Tests', () => {
       expect(code).toContain('@Expose()');
 
       // Should have properties
-      expect(code).toContain('id: string');
-      expect(code).toContain('email: string');
-      expect(code).toContain('age: number');
-      expect(code).toContain('tags: string[]');
+      expect(code).toContain('id!: string');
+      expect(code).toContain('email!: string');
+      expect(code).toContain('age!: number');
+      expect(code).toContain('tags!: string[]');
       expect(code).toContain('metadata?: Record<string, any>');
     });
 

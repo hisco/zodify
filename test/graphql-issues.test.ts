@@ -114,6 +114,38 @@ describe('GraphQL issues', () => {
       const countField = classFields.find((f: any) => f.name === 'count');
       expect(countField).toBeDefined();
     });
+
+    it('should resolve Int/Float GraphQL scalars in runtime @Field type functions', () => {
+      const schema = z.object({
+        count: z.number().int(),
+        score: z.number(),
+      });
+
+      const GeneratedClass = zodToClass(schema, {
+        className: 'TestScalars',
+        includeGraphQL: true,
+      });
+
+      LazyMetadataStorage.load();
+
+      const { Int, Float } = require('@nestjs/graphql');
+      const allEntries = TypeMetadataStorage.metadataByTargetCollection.storageList;
+      const classFields: any[] = [];
+      for (const entry of allEntries) {
+        for (const f of entry.fields.all) {
+          if (f.target === GeneratedClass) classFields.push(f);
+        }
+      }
+
+      const countField = classFields.find((f: any) => f.name === 'count');
+      expect(countField).toBeDefined();
+      // typeFn should resolve to Int without throwing ReferenceError
+      expect(countField.typeFn()).toBe(Int);
+
+      const scoreField = classFields.find((f: any) => f.name === 'score');
+      expect(scoreField).toBeDefined();
+      expect(scoreField.typeFn()).toBe(Float);
+    });
   });
 
   describe('Issue 2: Codegen inlines nested types instead of referencing shared schemas', () => {
