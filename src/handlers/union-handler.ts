@@ -1,5 +1,7 @@
 import { PropertyMetadata, SchemaNode } from '../types';
 import { mapZodToTransformers } from '../decorator-mapper';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 import { getTypeScriptType } from '../utils';
 
 /**
@@ -40,5 +42,7 @@ export function handleUnion(
     nullable: node.isNullable,
     validators,
     transformers: mapZodToTransformers(node),
+    swagger: mapZodToSwagger(node),
+    graphql: mapZodToGraphQL(node),
   };
 }

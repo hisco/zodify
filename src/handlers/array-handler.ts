@@ -1,5 +1,7 @@
 import { PropertyMetadata, ClassMetadata, SchemaNode } from '../types';
 import { mapZodToValidators, mapZodToTransformers } from '../decorator-mapper';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 import { toPascalCase, getTypeScriptType } from '../utils';
 import { handleProperty } from './index';
 import { setItemSchema } from '../metadata-storage';
@@ -52,6 +54,8 @@ export function handleArray(
         { name: 'Expose', source: 'class-transformer' },
         { name: 'Type', source: 'class-transformer', args: [`() => ${itemClassName}`] },
       ],
+      swagger: mapZodToSwagger(node, itemClassName),
+      graphql: mapZodToGraphQL(node, itemClassName),
       nestedClass,
     };
   }
@@ -70,6 +74,8 @@ export function handleArray(
     nullable: node.isNullable,
     validators: mapZodToValidators(node),
     transformers: mapZodToTransformers(node),
+    swagger: mapZodToSwagger(node),
+    graphql: mapZodToGraphQL(node),
     itemSchema: hasItemConstraints ? itemNode.schema : undefined,
   };
 }

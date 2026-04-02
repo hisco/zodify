@@ -1,5 +1,5 @@
 {
-  "name": "zodify",
+  "name": "@hiscojs/zodify",
   "version": "0.1.0",
   "description": "Bidirectional conversion between Zod schemas and TypeScript classes with class-transformer and class-validator decorators. 100% type preservation and round-trip conversion support.",
   "main": "dist/index.js",
@@ -42,11 +42,24 @@
   ],
   "author": "Hisco",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "zod": ">=3.20.0 <4.0.0",
     "class-transformer": ">=0.4.0 <1.0.0",
     "class-validator": ">=0.13.0 <1.0.0",
-    "reflect-metadata": ">=0.1.0 <0.3.0"
+    "reflect-metadata": ">=0.1.0 <0.3.0",
+    "@nestjs/swagger": ">=5.0.0 <9.0.0",
+    "@nestjs/graphql": ">=10.0.0 <14.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/swagger": {
+      "optional": true
+    },
+    "@nestjs/graphql": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

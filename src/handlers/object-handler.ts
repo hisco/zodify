@@ -1,5 +1,7 @@
 import { PropertyMetadata, ClassMetadata, SchemaNode } from '../types';
 import { mapZodToValidators, mapZodToTransformers } from '../decorator-mapper';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 import { toPascalCase } from '../utils';
 import { handleProperty } from './index';
 
@@ -42,6 +44,8 @@ export function handleObject(
     nullable: node.isNullable,
     validators: mapZodToValidators(node),
     transformers: mapZodToTransformers(node, nestedClassName),
+    swagger: mapZodToSwagger(node, nestedClassName),
+    graphql: mapZodToGraphQL(node, nestedClassName),
     nestedClass,
   };
 }

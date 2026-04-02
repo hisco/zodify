@@ -57,6 +57,20 @@ function applyPropertyDecorators(
   options: Required<ZodToClassOptions>,
   nestedClasses: Map<string, any>
 ): void {
+  // Apply GraphQL decorators
+  if (options.includeGraphQL && prop.graphql) {
+    for (const decorator of prop.graphql) {
+      applyDecorator(target, prop.name, decorator, nestedClasses);
+    }
+  }
+
+  // Apply swagger decorators
+  if (options.includeSwagger && prop.swagger) {
+    for (const decorator of prop.swagger) {
+      applyDecorator(target, prop.name, decorator, nestedClasses);
+    }
+  }
+
   // Apply validators
   if (options.includeValidators) {
     for (const decorator of prop.validators) {
@@ -99,6 +113,12 @@ function applyDecorator(
     if (decorator.source === 'class-transformer') {
       const classTransformer = require('class-transformer');
       decoratorFn = classTransformer[decorator.name];
+    } else if (decorator.source === 'nestjs-swagger') {
+      const swagger = require('@nestjs/swagger');
+      decoratorFn = swagger[decorator.name];
+    } else if (decorator.source === 'nestjs-graphql') {
+      const graphql = require('@nestjs/graphql');
+      decoratorFn = graphql[decorator.name];
     } else {
       const classValidator = require('class-validator');
       decoratorFn = classValidator[decorator.name];

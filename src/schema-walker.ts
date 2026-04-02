@@ -11,12 +11,46 @@ export function walkZodSchema(schema: z.ZodTypeAny): SchemaNode {
   const unwrapped = unwrapSchema(schema);
   const typeName = getZodTypeName(unwrapped);
 
+  // Check for ZodDefault wrapper — need to look at the original before full unwrap
+  let hasDefault = false;
+  let defaultValue: any;
+  {
+    let cursor: z.ZodTypeAny = schema;
+    // Walk through optional/nullable/default wrappers
+    while (cursor) {
+      const tn = getZodTypeName(cursor);
+      if (tn === 'ZodDefault') {
+        hasDefault = true;
+        defaultValue = (cursor as any)._def.defaultValue();
+        break;
+      }
+      if (tn === 'ZodOptional' || tn === 'ZodNullable') {
+        cursor = (cursor as any)._def.innerType;
+      } else {
+        break;
+      }
+    }
+  }
+
   const node: SchemaNode = {
     typeName,
     schema: unwrapped,
     isOptional: optional,
     isNullable: nullable,
   };
+
+  // Extract description — .describe() can be on any wrapper level,
+  // so check the original schema first, then the unwrapped inner type.
+  const description = (schema as any)._def.description ?? (unwrapped as any)._def.description;
+  if (description) {
+    node.description = description;
+  }
+
+  // Store default value
+  if (hasDefault) {
+    node.hasDefault = true;
+    node.defaultValue = defaultValue;
+  }
 
   // Extract checks/validators
   const checks = getChecks(unwrapped);

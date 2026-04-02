@@ -1,5 +1,7 @@
 import { PropertyMetadata, ClassMetadata, SchemaNode } from '../types';
 import { createDiscriminatorDecorator } from '../decorator-mapper';
+import { mapZodToSwagger } from '../swagger-mapper';
+import { mapZodToGraphQL } from '../graphql-mapper';
 import { toPascalCase } from '../utils';
 import { handleProperty } from './index';
 
@@ -83,6 +85,8 @@ export function handleDiscriminatedUnion(
       { name: 'Expose', source: 'class-transformer' },
       discriminatorDecorator,
     ],
+    swagger: mapZodToSwagger(node),
+    graphql: mapZodToGraphQL(node),
     nestedClass: {
       name: `${parentClassName}${toPascalCase(propertyName)}Variants`,
       properties: [],

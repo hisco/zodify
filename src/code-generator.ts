@@ -38,6 +38,9 @@ function generateImports(
   const classTransformerImports = new Set<string>();
   const classValidatorImports = new Set<string>();
 
+  const swaggerImports = new Set<string>();
+  const graphqlImports = new Set<string>();
+
   // Collect decorators from all properties (including nested classes)
   const collectDecorators = (classMeta: ClassMetadata) => {
     for (const prop of classMeta.properties) {
@@ -56,6 +59,22 @@ function generateImports(
           }
         }
       }
+
+      if (options.includeSwagger && prop.swagger) {
+        for (const dec of prop.swagger) {
+          if (dec.source === 'nestjs-swagger') {
+            swaggerImports.add(dec.name);
+          }
+        }
+      }
+
+      if (options.includeGraphQL && prop.graphql) {
+        for (const dec of prop.graphql) {
+          if (dec.source === 'nestjs-graphql') {
+            graphqlImports.add(dec.name);
+          }
+        }
+      }
     }
 
     // Recursively collect from nested classes
@@ -66,7 +85,41 @@ function generateImports(
 
   collectDecorators(metadata);
 
+  // Add GraphQL class-level decorator
+  if (options.includeGraphQL) {
+    graphqlImports.add(options.graphqlType);
+  }
+
+  // Scan for Int/Float usage in graphql decorator args to add scalar imports
+  if (options.includeGraphQL) {
+    const scanForScalars = (classMeta: ClassMetadata) => {
+      for (const prop of classMeta.properties) {
+        if (prop.graphql) {
+          for (const dec of prop.graphql) {
+            const allArgs = (dec.args || []).join(' ');
+            if (/\bInt\b/.test(allArgs)) graphqlImports.add('Int');
+            if (/\bFloat\b/.test(allArgs)) graphqlImports.add('Float');
+          }
+        }
+      }
+      for (const nested of classMeta.nestedClasses) {
+        scanForScalars(nested);
+      }
+    };
+    scanForScalars(metadata);
+  }
+
   // Generate import statements
+  if (graphqlImports.size > 0) {
+    const names = Array.from(graphqlImports).sort().join(', ');
+    imports.add(`import { ${names} } from '@nestjs/graphql';`);
+  }
+
+  if (swaggerImports.size > 0) {
+    const names = Array.from(swaggerImports).sort().join(', ');
+    imports.add(`import { ${names} } from '@nestjs/swagger';`);
+  }
+
   if (classTransformerImports.size > 0) {
     const names = Array.from(classTransformerImports).sort().join(', ');
     imports.add(`import { ${names} } from 'class-transformer';`);
@@ -92,7 +145,9 @@ function generateClassCode(
     .map((prop) => generatePropertyCode(prop, options))
     .join('\n\n');
 
-  return `${classKeyword} ${metadata.name} {
+  const classDecorator = options.includeGraphQL ? `@${options.graphqlType}()\n` : '';
+
+  return `${classDecorator}${classKeyword} ${metadata.name} {
 ${properties}
 }`;
 }
@@ -105,6 +160,20 @@ function generatePropertyCode(
   options: Required<ZodToClassOptions>
 ): string {
   const decorators: string[] = [];
+
+  // Add GraphQL decorators first
+  if (options.includeGraphQL && prop.graphql) {
+    for (const dec of prop.graphql) {
+      decorators.push(generateDecoratorCode(dec));
+    }
+  }
+
+  // Add swagger decorators (they appear at the top in NestJS convention)
+  if (options.includeSwagger && prop.swagger) {
+    for (const dec of prop.swagger) {
+      decorators.push(generateDecoratorCode(dec));
+    }
+  }
 
   // Add validators
   if (options.includeValidators) {
@@ -198,8 +267,25 @@ function formatDecoratorOptions(options: Record<string, any>): string {
     if (typeof value === 'boolean') {
       return `${key}: ${value}`;
     }
+    if (typeof value === 'number') {
+      return `${key}: ${value}`;
+    }
     if (typeof value === 'string') {
+      // Handle constructor references (String, Number, Boolean, Date, Object)
+      if (/^(String|Number|Boolean|Date|Object)$/.test(value)) {
+        return `${key}: ${value}`;
+      }
+      // Handle arrow function references (e.g., "() => ClassName")
+      if (value.startsWith('()')) {
+        return `${key}: ${value}`;
+      }
       return `${key}: '${value}'`;
+    }
+    if (Array.isArray(value)) {
+      const formattedItems = value.map((item) =>
+        typeof item === 'string' ? `'${item}'` : String(item)
+      );
+      return `${key}: [${formattedItems.join(', ')}]`;
     }
     if (typeof value === 'object') {
       return `${key}: ${JSON.stringify(value)}`;
