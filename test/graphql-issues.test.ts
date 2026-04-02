@@ -300,4 +300,57 @@ describe('GraphQL issues', () => {
       expect(gatewaysViewMeta).toBeDefined();
     });
   });
+
+  describe('Issue 3: Codegen emits nested classes in wrong order', () => {
+    it('should emit leaf types before the classes that reference them', () => {
+      const schema = z.object({
+        repo: z.object({
+          url: z.string(),
+          owner: z.object({
+            name: z.string(),
+          }),
+        }),
+      });
+
+      const code = zodToClass.toCode(schema, {
+        className: 'ServiceModel',
+        includeValidators: false,
+        includeTransformers: false,
+      });
+
+      const ownerPos = code.indexOf('class ServiceModelRepoOwner');
+      const repoPos = code.indexOf('class ServiceModelRepo {');
+      const mainPos = code.indexOf('class ServiceModel {');
+
+      // Leaf type (Owner) must come before its parent (Repo), which must come before main class
+      expect(ownerPos).toBeGreaterThan(-1);
+      expect(repoPos).toBeGreaterThan(-1);
+      expect(mainPos).toBeGreaterThan(-1);
+      expect(ownerPos).toBeLessThan(repoPos);
+      expect(repoPos).toBeLessThan(mainPos);
+    });
+
+    it('should handle deeply nested arrays in correct order', () => {
+      const schema = z.object({
+        items: z.array(z.object({
+          children: z.array(z.object({
+            value: z.string(),
+          })),
+        })),
+      });
+
+      const code = zodToClass.toCode(schema, {
+        className: 'Root',
+        includeValidators: false,
+        includeTransformers: false,
+      });
+
+      const childPos = code.indexOf('class RootItemsItemChildrenItem');
+      const itemPos = code.indexOf('class RootItemsItem {');
+      const rootPos = code.indexOf('class Root {');
+
+      expect(childPos).toBeLessThan(itemPos);
+      expect(itemPos).toBeLessThan(rootPos);
+    });
+  });
 });

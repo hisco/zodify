@@ -60,8 +60,8 @@ export function handleArray(
         nestedClass.properties.push(propMetadata);
 
         if (propMetadata.nestedClass) {
-          nestedClass.nestedClasses.push(propMetadata.nestedClass);
           nestedClass.nestedClasses.push(...propMetadata.nestedClass.nestedClasses);
+          nestedClass.nestedClasses.push(propMetadata.nestedClass);
         }
       }
     }

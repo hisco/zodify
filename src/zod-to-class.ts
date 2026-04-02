@@ -85,11 +85,11 @@ function buildClassMetadata(node: any, className: string, registry?: SchemaRegis
     const propMetadata = handleProperty(propertyName, propertyNode as any, className, registry);
     metadata.properties.push(propMetadata);
 
-    // Collect nested classes
+    // Collect nested classes — deepest (leaf) types first so they're
+    // defined before the classes that reference them in codegen output
     if (propMetadata.nestedClass) {
-      metadata.nestedClasses.push(propMetadata.nestedClass);
-      // Recursively collect deeply nested classes
       metadata.nestedClasses.push(...propMetadata.nestedClass.nestedClasses);
+      metadata.nestedClasses.push(propMetadata.nestedClass);
     }
   }
 

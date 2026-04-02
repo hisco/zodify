@@ -46,11 +46,10 @@ export function handleObject(
       const propMetadata = handleProperty(key, childNode, nestedClassName, registry);
       nestedClass.properties.push(propMetadata);
 
-      // Collect nested classes
+      // Collect nested classes — deepest first for correct codegen order
       if (propMetadata.nestedClass) {
-        nestedClass.nestedClasses.push(propMetadata.nestedClass);
-        // Recursively collect deeply nested classes
         nestedClass.nestedClasses.push(...propMetadata.nestedClass.nestedClasses);
+        nestedClass.nestedClasses.push(propMetadata.nestedClass);
       }
     }
   }
