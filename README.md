@@ -1,9 +1,15 @@
 # zodify
 
-**Bidirectional conversion** between Zod schemas and TypeScript classes with class-transformer and class-validator decorators. **100% type preservation** in both directions!
+[![npm](https://img.shields.io/npm/v/@hiscojs/zodify)](https://www.npmjs.com/package/@hiscojs/zodify)
+[![GitHub](https://img.shields.io/github/stars/hisco/zodify)](https://github.com/hisco/zodify)
+
+**Complete bridge** between JSON Schema, Zod schemas, and TypeScript classes. **JSON Schema ↔ Zod ↔ Class** with 100% type preservation!
+
+[npm](https://www.npmjs.com/package/@hiscojs/zodify) | [GitHub](https://github.com/hisco/zodify)
 
 ## Features
 
+- ✅ **JSON Schema ↔ Zod**: Convert between JSON Schema (Draft-07) and runtime Zod schemas
 - ✅ **Bidirectional conversion**: Zod ↔ Class with zero data loss
 - ✅ **100% round-trip preservation**: Convert Zod → Class → Zod with all constraints intact
 - ✅ **Swagger / OpenAPI**: Auto-generate `@ApiProperty()` / `@ApiPropertyOptional()` from `@nestjs/swagger`
@@ -109,7 +115,80 @@ const user = UserSchema.parse({
 });
 ```
 
+## Quick Start - JSON Schema ↔ Zod
+
+```typescript
+import { zodToJsonSchema, jsonSchemaToZod } from 'zodify';
+import { z } from 'zod';
+
+// Zod → JSON Schema
+const UserSchema = z.object({
+  email: z.string().email(),
+  age: z.number().int().min(0).max(120),
+  role: z.enum(['admin', 'user', 'guest']),
+});
+
+const jsonSchema = zodToJsonSchema(UserSchema);
+// { type: "object", properties: { email: { type: "string", format: "email" }, ... } }
+
+// JSON Schema → Zod
+const zodSchema = jsonSchemaToZod(jsonSchema);
+zodSchema.parse({ email: 'test@example.com', age: 25, role: 'admin' }); // ✅
+
+// Round-trip: JSON Schema → Zod → JSON Schema
+const roundTripped = zodToJsonSchema(jsonSchemaToZod(jsonSchema));
+// Structurally equivalent to the original jsonSchema
+```
+
+### Supported JSON Schema Features
+
+| JSON Schema | Zod |
+|---|---|
+| `type: "string"` | `z.string()` |
+| `type: "number"` | `z.number()` |
+| `type: "integer"` | `z.number().int()` |
+| `type: "boolean"` | `z.boolean()` |
+| `type: "object"` + properties | `z.object({...})` |
+| `type: "array"` + items | `z.array(...)` |
+| `enum: [...]` | `z.enum([...])` |
+| `additionalProperties` | `z.record(...)` |
+| `$ref` + definitions/$defs | Resolved recursively |
+| `oneOf`/`anyOf` | `z.union([...])` |
+| `oneOf: [X, {type:"null"}]` | `.nullable()` |
+| `nullable: true` (OpenAPI) | `.nullable()` |
+| Not in `required` | `.optional()` |
+| `description` | `.describe()` |
+| `default` | `.default()` |
+
+**String formats**: `email`, `uri`/`url`, `uuid`, `date-time`, `ipv4`, `ipv6`
+**String constraints**: `minLength`, `maxLength`, `pattern`
+**Number constraints**: `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`
+**Array constraints**: `minItems`, `maxItems`
+
 ## API Reference
+
+### `zodToJsonSchema(schema, options)`
+
+Convert a Zod schema to a JSON Schema (Draft-07 by default).
+
+**Parameters:**
+- `schema` - Any Zod schema
+- `options` - Configuration options:
+  - `name?: string` - Name for the top-level definition
+  - `target?: 'draft-07' | 'draft-2019-09' | 'openApi3'` - Target JSON Schema draft (default: 'draft-07')
+
+**Returns:** A JSON Schema object
+
+### `jsonSchemaToZod(jsonSchema, options)`
+
+Convert a JSON Schema object to a runtime Zod schema.
+
+**Parameters:**
+- `jsonSchema` - A JSON Schema object (Draft-04/07 compatible)
+- `options` - Configuration options:
+  - `refResolver?: (ref, rootSchema) => JsonSchema` - Custom `$ref` resolver
+
+**Returns:** A Zod schema (`z.ZodTypeAny`)
 
 ### `zodToClass(schema, options)`
 

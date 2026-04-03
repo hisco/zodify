@@ -1,6 +1,6 @@
 {
   "name": "@hiscojs/zodify",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Bidirectional conversion between Zod schemas and TypeScript classes with class-transformer and class-validator decorators. 100% type preservation and round-trip conversion support.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,6 +28,7 @@
   "homepage": "https://github.com/hisco/zodify#readme",
   "keywords": [
     "zod",
+    "json-schema",
     "class-transformer",
     "class-validator",
     "decorators",
@@ -61,6 +62,10 @@
       "optional": true
     }
   },
+  "overrides": {
+    "lodash": "^4.18.0",
+    "path-to-regexp": "^8.4.0"
+  },
   "devDependencies": {
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
@@ -75,5 +80,8 @@
     "ts-jest": "^29.0.0",
     "typescript": "^5.0.0",
     "zod": "^3.22.0"
+  },
+  "dependencies": {
+    "zod-to-json-schema": "^3.25.2"
   }
 }

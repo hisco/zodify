@@ -172,3 +172,81 @@ export interface SchemaNode {
   /** Whether this schema has a default (to distinguish undefined default from no default) */
   hasDefault?: boolean;
 }
+
+/**
+ * JSON Schema Draft-07 compatible object
+ */
+export interface JsonSchema {
+  $schema?: string;
+  $ref?: string;
+  $defs?: Record<string, JsonSchema>;
+  definitions?: Record<string, JsonSchema>;
+
+  type?: string | string[];
+  enum?: any[];
+  const?: any;
+
+  // Object
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  additionalProperties?: boolean | JsonSchema;
+  patternProperties?: Record<string, JsonSchema>;
+
+  // Array
+  items?: JsonSchema | JsonSchema[];
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+
+  // String
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+
+  // Number
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number | boolean;
+  exclusiveMaximum?: number | boolean;
+  multipleOf?: number;
+
+  // Combinators
+  allOf?: JsonSchema[];
+  anyOf?: JsonSchema[];
+  oneOf?: JsonSchema[];
+  not?: JsonSchema;
+
+  // Metadata
+  title?: string;
+  description?: string;
+  default?: any;
+  examples?: any[];
+
+  // OpenAPI extensions
+  nullable?: boolean;
+
+  [key: string]: any;
+}
+
+/**
+ * Options for zodToJsonSchema conversion
+ */
+export interface ZodToJsonSchemaOptions {
+  /** Name used for the top-level definition key */
+  name?: string;
+  /** JSON Schema target draft (default: 'draft-07') */
+  target?: 'draft-07' | 'draft-2019-09' | 'openApi3';
+  /** Base path for $ref (default: '#/$defs/') */
+  basePath?: string[];
+  /** Whether to emit definitions (default: false) */
+  definitions?: boolean;
+}
+
+/**
+ * Options for jsonSchemaToZod conversion
+ */
+export interface JsonSchemaToZodOptions {
+  /** Override how $ref is resolved. By default, resolves from definitions/$defs. */
+  refResolver?: (ref: string, rootSchema: JsonSchema) => JsonSchema;
+}

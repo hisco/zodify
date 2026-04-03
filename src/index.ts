@@ -8,11 +8,16 @@
 export { zodToClass } from './zod-to-class';
 export { classToZod } from './class-to-zod';
 export { SchemaRegistry } from './schema-registry';
+export { zodToJsonSchema } from './zod-to-json-schema';
+export { jsonSchemaToZod } from './json-schema-to-zod';
 
 // Configuration options
 export type {
   ZodToClassOptions,
-  ClassToZodOptions
+  ClassToZodOptions,
+  JsonSchema,
+  ZodToJsonSchemaOptions,
+  JsonSchemaToZodOptions,
 } from './types';
 
 // Metadata types (useful for advanced usage)
