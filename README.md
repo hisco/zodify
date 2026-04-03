@@ -14,6 +14,7 @@
 - ✅ **100% round-trip preservation**: Convert Zod → Class → Zod with all constraints intact
 - ✅ **Swagger / OpenAPI**: Auto-generate `@ApiProperty()` / `@ApiPropertyOptional()` from `@nestjs/swagger`
 - ✅ **GraphQL**: Auto-generate `@Field()`, `@ObjectType()` / `@InputType()` from `@nestjs/graphql`
+- ✅ **`asGraphQLType()`**: Add GraphQL decorators to existing classes at runtime (ideal for OpenAPI-generated models)
 - ✅ **Array constraints**: Full support for `.min()`, `.max()`, `.length()`, `.nonempty()`
 - ✅ **Primitive array items**: Preserve constraints like `z.array(z.string().min(2))`
 - ✅ **Date ranges**: `z.date().min(date)` and `.max(date)` support
@@ -764,6 +765,67 @@ const code = zodToClass.toCode(UserSchema, {
   includeGraphQL: true,
 });
 // Generates @ObjectType(), @Field(), @ApiProperty(), @IsString(), @Expose() etc.
+```
+
+## `asGraphQLType()` — GraphQL Decorators for Existing Classes
+
+Add `@ObjectType()` and `@Field()` decorators to existing classes at runtime, without code generation. Ideal for OpenAPI-generated client classes that already have `@Expose()` and `@Type()` decorators.
+
+```typescript
+import { Deployment } from '@myorg/api-client';
+import { asGraphQLType } from 'zodify';
+
+// Returns a subclass with GraphQL decorators — original class is untouched
+const DeploymentModel = asGraphQLType(Deployment, {
+  name: 'DeploymentModel',
+});
+
+// Use in NestJS resolvers
+@Resolver(() => DeploymentModel)
+class DeploymentResolver {
+  @Query(() => DeploymentModel)
+  async deployment() { ... }
+}
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `name` | `string` | Class name | GraphQL type name |
+| `type` | `'ObjectType' \| 'InputType'` | `'ObjectType'` | Class-level decorator |
+| `unknownScalar` | `any` | — | Scalar for `object`/unknown fields (e.g. `GraphQLJSON`) |
+| `processedClasses` | `Map` | — | Shared cache to avoid decorating the same class twice |
+
+### Metadata Sources
+
+`asGraphQLType` reads property info from (in priority order):
+
+1. **`static attributeTypeMap`** — OpenAPI codegen convention. Provides `type`, `format`, `description`, and `modelClass` per property. This is the richest source and enables correct `Int` vs `Float` mapping (via `format: "int32"`), descriptions, and nested class resolution.
+2. **`@Type(() => X)` decorators** — class-transformer metadata for nested classes and arrays.
+3. **`design:type` reflect-metadata** — TypeScript compiler output, used as fallback.
+
+### Handling Unknown/Untyped Fields
+
+Fields typed as `object` or without a recognized type are **skipped by default** (not valid GraphQL types). To include them, pass a scalar:
+
+```typescript
+import GraphQLJSON from 'graphql-type-json';
+
+const Model = asGraphQLType(MyClass, {
+  unknownScalar: GraphQLJSON,
+});
+```
+
+### Nested Classes
+
+Nested objects and arrays of objects are **recursively processed**. Each nested class gets its own `@ObjectType()` and `@Field()` decorators:
+
+```typescript
+// If Deployment has `@Type(() => Address) address: Address`
+// and `@Type(() => Listener) listeners: Listener[]`
+// then Address and Listener are automatically decorated too.
+const DeploymentModel = asGraphQLType(Deployment);
 ```
 
 ## SchemaRegistry

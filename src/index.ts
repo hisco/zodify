@@ -10,6 +10,7 @@ export { classToZod } from './class-to-zod';
 export { SchemaRegistry } from './schema-registry';
 export { zodToJsonSchema } from './zod-to-json-schema';
 export { jsonSchemaToZod } from './json-schema-to-zod';
+export { asGraphQLType } from './as-graphql-type';
 
 // Configuration options
 export type {
@@ -18,6 +19,8 @@ export type {
   JsonSchema,
   ZodToJsonSchemaOptions,
   JsonSchemaToZodOptions,
+  AsGraphQLTypeOptions,
+  AttributeTypeMapEntry,
 } from './types';
 
 // Metadata types (useful for advanced usage)

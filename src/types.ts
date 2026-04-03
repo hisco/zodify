@@ -250,3 +250,39 @@ export interface JsonSchemaToZodOptions {
   /** Override how $ref is resolved. By default, resolves from definitions/$defs. */
   refResolver?: (ref: string, rootSchema: JsonSchema) => JsonSchema;
 }
+
+/**
+ * Entry in a class's static attributeTypeMap array (OpenAPI codegen convention).
+ */
+export interface AttributeTypeMapEntry {
+  name: string;
+  baseName?: string;
+  type: string;
+  format?: string;
+  description?: string;
+  modelClass?: new (...args: any[]) => any;
+}
+
+/**
+ * Options for asGraphQLType conversion.
+ */
+export interface AsGraphQLTypeOptions {
+  /** GraphQL type name (defaults to class name) */
+  name?: string;
+
+  /** GraphQL decorator type: 'ObjectType' (default) or 'InputType' */
+  type?: 'ObjectType' | 'InputType';
+
+  /**
+   * GraphQL scalar to use for unknown/untyped fields (z.unknown(), z.record(), object without properties).
+   * Pass a GraphQL scalar type (e.g. GraphQLJSON from graphql-scalars).
+   * If not set, untyped fields are omitted from the GraphQL schema.
+   */
+  unknownScalar?: any;
+
+  /**
+   * Cache of already-processed classes, to avoid decorating the same class twice
+   * and to handle circular references. Shared across recursive calls.
+   */
+  processedClasses?: Map<Function, Function>;
+}
